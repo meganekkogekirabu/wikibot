@@ -5,14 +5,26 @@ import sys
 import discord
 from dotenv import load_dotenv
 
+load_dotenv()
 logger = logging.getLogger("discord.wikibot")
+
+
+def get_env(k) -> str:
+    k = "WIKIBOT_" + k
+    v = os.getenv(k)
+
+    if v is None:
+        print(f"could not get environment variable {k}")
+        sys.exit(1)
+    else:
+        return v
 
 
 class Wikibot(discord.Client):
     wikilink = re.compile(r"\[\[(?:([^:]*?):)?([^\]\|]+)(?:\|[^\]]+)?\]\]")
     template = re.compile(r"\{\{([^\}]+)(?:\|[^\]]+)?\}\}")
-    lang = "en"
-    family = "wiktionary"
+    lang = get_env("LANG")
+    family = get_env("FAMILY")
     root = f"https://{lang}.{family}.org/wiki"
 
     def format_link(self, namespace: str, title: str) -> str:
@@ -38,6 +50,9 @@ class Wikibot(discord.Client):
 
     async def on_ready(self):
         logger.info(f"Logged in as {self.user}")
+        await self.change_presence(
+            status=discord.Status.online, activity=discord.Game("holy guacamole")
+        )
 
     async def on_message(self, message):
         if message.author == self.user:
@@ -58,13 +73,7 @@ class Wikibot(discord.Client):
 
 
 def main():
-    load_dotenv()
-
-    token = os.getenv("TOKEN")
-
-    if token is None:
-        logger.error("could not get `TOKEN`")
-        sys.exit(1)
+    token = get_env("TOKEN")
 
     intents = discord.Intents(messages=True, message_content=True)
     client = Wikibot(intents=intents)
